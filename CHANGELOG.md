@@ -7,29 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2025-01-XX
+## [0.1.0] - 2025-01-01
 
 ### Added
 - Initial public release
 - Interactive REPL mode with syntax highlighting
 - API authentication with secure credential storage
-- Support for 8 embedding models:
-  - text-minilm (384D)
-  - text-mpnet (768D)
-  - text-e5large (1024D)
-  - mistral-embed (1024D)
-  - openai-small (1536D)
-  - openai-large (3072D)
-  - audio-wav2vec2 (768D)
-  - protein-esm (320D)
-- Compression commands: `/compress`, `/decompress`
+- **3-Stage Compression Pipeline (AQEA+PQ)** - Up to 3072x compression!
+- Support for 7 embedding models:
+  - text-minilm (384D → 13D)
+  - text-mpnet (768D → 26D)
+  - text-e5large (1024D → 35D)
+  - openai-small (1536D → 52D)
+  - openai-large (3072D → 105D)
+  - audio-wav2vec2 (768D → 26D)
+  - protein-esm (320D → 11D)
+- 2-Stage compression: `/compress` (29x, works with any vector DB)
+- 3-Stage compression: `/compress-pq` (213-3072x, requires codebook)
+- New commands:
+  - `/mode` - Select compression mode (AQEA or AQEA+PQ)
+  - `/subs [n]` - Set PQ subvector count for 3-Stage
+  - `/compress-pq <file>` - 3-Stage compression
 - Quality validation: `/validate`
 - Model selection: `/models`, `/model <name>`
 - Session management: `/login`, `/logout`, `/status`
 - Cross-platform support (Linux, macOS, Windows)
 - ARM64 support (Apple Silicon, Linux ARM)
 - One-line installers for all platforms
-- Offline mode with local weights
+
+### Performance
+- Audio embeddings: 236x compression @ 96.5% quality
+- Protein embeddings: 213x compression @ 93.4% quality
+- OpenAI Large: 3072x compression @ 79% quality (maximum)
 
 ### Security
 - Encrypted credential storage
