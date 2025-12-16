@@ -1,0 +1,22 @@
+# Build artifacts
+/target/
+*.exe
+*.tar.gz
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rust
+Cargo.lock
+
+# Temporary
+*.tmp
+*.bak
