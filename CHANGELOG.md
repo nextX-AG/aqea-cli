@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2025-12-19
+## [0.2.0] - 2025-12-19
+
+### Changed (Breaking)
+- **Compression now requires API authentication** - no local compression
+- Removed `--weights` flag (security improvement)
+- Removed `--offline` flag (security improvement)
+- Internal commands (`validate`, `info`) hidden from help
+
+### Added
+- API-based compression via `/api/v1/compress/batch`
+- Clear error messages for unauthenticated users
+- Batch compression support for better performance
+
+### Security
+- AQEA weights never leave the server
+- CLI cannot compress without valid API key
+- All embeddings processed securely via HTTPS
+
+## [0.1.0] - 2025-12-16
 
 ### Added
 - Initial public release
