@@ -31,8 +31,8 @@ console = "0.15"
 rustyline = "14"
 dialoguer = "0.11"
 
-# HTTP client for API calls
-reqwest = { version = "0.11", features = ["json", "blocking"] }
+# HTTP client for API calls (rustls for cross-compilation)
+reqwest = { version = "0.11", default-features = false, features = ["json", "blocking", "rustls-tls"] }
 
 # Config file handling
 dirs = "5.0"
