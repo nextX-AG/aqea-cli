@@ -27,9 +27,9 @@ jobs:
             archive: tar.gz
             cross: true
 
-          # macOS Intel
+          # macOS Intel (cross-compile on ARM Mac)
           - target: x86_64-apple-darwin
-            os: macos-13  # Intel Mac
+            os: macos-14  # Use ARM Mac with cross-compile
             archive: tar.gz
 
           # macOS Apple Silicon
