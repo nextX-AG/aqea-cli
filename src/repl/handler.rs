@@ -6,16 +6,13 @@ use console::style;
 use dialoguer::{Password, Select};
 use std::path::PathBuf;
 use std::time::Instant;
-use std::io::Write;
 use rayon::prelude::*;
-use std::sync::mpsc;
-use std::thread;
 use std::process::{Command as ProcessCommand, Stdio};
 use std::io::{BufRead, BufReader};
 
 use aqea_core::{
     OctonionCompressor, Compressor, BinaryWeights, ProductQuantizer,
-    cosine_similarity, spearman_correlation, CMAES,
+    cosine_similarity, spearman_correlation,
 };
 
 use crate::config::{Config, FeatureFlags};

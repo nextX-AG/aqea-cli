@@ -15,8 +15,7 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use aqea_core::{
-    OctonionCompressor, Compressor, BinaryWeights, 
-    PreQuantifier, cosine_similarity, spearman_correlation
+    Compressor, BinaryWeights, cosine_similarity, spearman_correlation
 };
 
 mod config;
@@ -27,7 +26,7 @@ mod validate;
 mod repl;
 
 use config::Config;
-use csv_support::{detect_format, parse_csv, vectors_to_csv_data, write_csv, CsvData, FileFormat};
+use csv_support::{detect_format, parse_csv, vectors_to_csv_data, write_csv, FileFormat};
 
 // ============================================================================
 // CLI STRUCTURE

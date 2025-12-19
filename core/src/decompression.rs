@@ -11,7 +11,6 @@ use crate::constants::KB_EV;
 use crate::pq::ProductQuantizer;
 use rand::prelude::*;
 use rand_distr::Normal;
-use std::sync::Arc;
 
 /// Trait for decompression algorithms
 pub trait Decompressor: Send + Sync {

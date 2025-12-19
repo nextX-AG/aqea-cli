@@ -9,7 +9,7 @@ pub use commands::{Command, parse_command};
 pub use handler::CommandHandler;
 
 use rustyline::error::ReadlineError;
-use rustyline::{DefaultEditor, Result as RlResult};
+use rustyline::DefaultEditor;
 use console::style;
 use std::path::PathBuf;
 
