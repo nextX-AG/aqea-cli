@@ -8,6 +8,13 @@
 
 AQEA Compress is a CLI tool for extreme embedding compression. Reduce your vector storage costs by up to 99% while maintaining semantic search quality.
 
+## 🆕 What's New in v0.2.5
+
+- **`aqea train`** - Train custom AQEA weights with Focus Steering
+- **Sampling Strategies** - Choose between `random`, `kmeans`, or `tsne-grid`
+- **`aqea pq train`** - Train custom PQ codebooks for extreme compression
+- **Focus Steering** - Tune retrieval behavior without retraining base transformers
+
 ## Quick Install
 
 ### macOS / Linux
@@ -22,15 +29,17 @@ curl -fsSL https://aqea.ai/install.sh | bash
 irm https://aqea.ai/install.ps1 | iex
 ```
 
-### Homebrew (macOS/Linux)
-
-```bash
-brew install nextx-ag/tap/aqea
-```
-
 ### Manual Download
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/nextX-AG/aqea-cli/releases).
+Download the latest release for your platform from [GitHub Releases](https://github.com/nextX-AG/aqea-cli/releases/latest).
+
+| Platform | Download |
+|----------|----------|
+| macOS (Apple Silicon) | [aqea-aarch64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-apple-darwin.tar.gz) |
+| macOS (Intel) | [aqea-x86_64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-apple-darwin.tar.gz) |
+| Linux (x86_64) | [aqea-x86_64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-unknown-linux-gnu.tar.gz) |
+| Linux (ARM64) | [aqea-aarch64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-unknown-linux-gnu.tar.gz) |
+| Windows | [aqea-x86_64-pc-windows-msvc.zip](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-pc-windows-msvc.zip) |
 
 ## Supported Platforms
 
@@ -42,83 +51,88 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ## Usage
 
-### Interactive Mode (REPL)
+### Commands Overview
 
 ```bash
-# Start interactive shell
-aqea
-
-# You'll see:
-# 🔷 AQEA Compress CLI v0.1.0
-# Type /help for commands, or enter vectors to compress
+aqea --help
 ```
-
-### Commands
 
 | Command | Description |
 |---------|-------------|
-| `/login` | Authenticate with your API key |
-| `/models` | List available compression models |
-| `/model <name>` | Select a compression model |
-| `/mode` | **NEW:** Select compression mode (AQEA or AQEA+PQ) |
-| `/subs [n]` | **NEW:** Set PQ subvector count (3-Stage only) |
-| `/compress <file>` | Compress vectors (2-Stage AQEA) |
-| `/compress-pq <file>` | **NEW:** 3-Stage compression (AQEA+PQ) |
-| `/decompress <file>` | Decompress vectors |
-| `/validate <file>` | Test compression quality on your data |
-| `/status` | Show current session status |
-| `/help` | Show all available commands |
-| `/quit` | Exit the CLI |
+| `aqea auth login` | Authenticate with your API key |
+| `aqea auth status` | Check authentication status |
+| `aqea models` | List available compression models |
+| `aqea compress` | Compress embeddings via API |
+| `aqea test` | Run compression quality test |
+| `aqea train` | **NEW:** Train custom AQEA weights |
+| `aqea pq train` | **NEW:** Train custom PQ codebooks |
+| `aqea pq list` | List available PQ codebooks |
+| `aqea usage` | Show API usage statistics |
+| `aqea config` | Manage configuration |
 
-### Quick Examples
+### Quick Start
 
 ```bash
-# Login with API key
-aqea
-> /login
-Enter API key: aqea_xxxxx
-✅ Authenticated successfully!
+# 1. Login with your API key
+aqea auth login
 
-# 2-Stage Compression (AQEA only, ~29x)
-> /compress embeddings.json
-📥 Loaded 1000 vectors (384D)
-📦 Using model: text-minilm
-✅ Compressed to 13D (29x compression)
-💾 Saved to embeddings_compressed.json
+# 2. Check available models
+aqea models
 
-# 3-Stage Compression (AQEA+PQ, up to 3072x) 🔥
-> /mode
-? Select compression mode:
-  ❯ AQEA (2-Stage)      ~29x compression
-    AQEA+PQ (3-Stage)   213-3072x compression ⚡
+# 3. Run a quality test
+aqea test --model text-mpnet
 
-> /model audio-wav2vec2
-> /subs 13
-> /compress-pq audio_embeddings.json
-📥 Loaded 1000 vectors (768D)
-📦 Model: audio-wav2vec2 | Mode: AQEA+PQ (13 subvectors)
-✅ Compressed: 768D → 13 bytes (236x)
-💾 Saved to audio_embeddings.pq.json
-
-# Validate compression quality
-> /validate my_embeddings.json
-🔬 Testing compression quality...
-   Spearman correlation: 94.7%
-   ✅ EXCELLENT - Safe to use!
+# 4. Compress your embeddings
+aqea compress embeddings.json -o compressed.json --model text-mpnet
 ```
 
-### Direct Commands (Non-Interactive)
+## 🎯 Focus Steering (NEW in v0.2.5)
+
+Train custom "lenses" that change retrieval behavior without retraining your base transformer!
+
+### Sampling Strategies
+
+| Strategy | Focus | Best For |
+|----------|-------|----------|
+| `random` | Balanced | General purpose |
+| `kmeans` | Cluster centers | Precision (tight clusters) |
+| `tsne-grid` | Uniform coverage | Discovery (diverse results) |
+
+### Training Examples
 
 ```bash
-# Compress directly
-aqea compress embeddings.json -o compressed.json
+# Basic training with K-Means sampling (default)
+aqea train \
+  --input embeddings.json \
+  --output my_weights.aqwt \
+  --sampling kmeans
 
-# With specific model
-aqea compress embeddings.json --model text-mpnet -o compressed.json
+# Discovery-focused training (t-SNE grid)
+aqea train \
+  --input embeddings.json \
+  --output discovery_weights.aqwt \
+  --sampling tsne-grid \
+  --train-split 30
 
-# Validate quality
-aqea validate embeddings.json
+# Train with PQ for extreme compression (585x)
+aqea train \
+  --input embeddings.json \
+  --output extreme.aqwt \
+  --pq 17 \
+  --pq-output codebook.json
 ```
+
+### Training Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--input` | required | Input embeddings (JSON or AQED format) |
+| `--output` | required | Output weights file (.aqwt) |
+| `--train-split` | 20% | Percentage of data for training |
+| `--sampling` | kmeans | Sampling strategy |
+| `--samples` | auto | Fixed sample count (e.g., "500" or "50%") |
+| `--pq` | - | Train PQ codebook with N subvectors |
+| `--quick` | false | Faster training, slightly lower quality |
 
 ## Compression Performance
 
@@ -132,39 +146,69 @@ aqea validate embeddings.json
 | OpenAI Small | 1536D → 52D | 29x | 95.0% |
 | OpenAI Large | 3072D → 105D | 29x | 95.0% |
 | Audio (wav2vec2) | 768D → 26D | 29x | 97.1% |
-| Protein (ESM) | 320D → 11D | 29x | 95.0% |
 
 ### 3-Stage (AQEA+PQ) - Maximum Compression 🔥
 
 | Model | Subvectors | Output | Compression | Quality |
 |-------|------------|--------|-------------|---------|
-| Audio (wav2vec2) | 13 | 13 bytes | **236x** | 96.5% |
-| Audio (wav2vec2) | 4 | 4 bytes | **768x** | 88.4% |
-| Protein (ESM) | 6 | 6 bytes | **213x** | 93.4% |
+| E5-Large | 17 | 17 bytes | **585x** | 93.5% |
+| E5-Large | 31 | 31 bytes | **241x** | 97.2% |
 | OpenAI Large | 10 | 10 bytes | **1229x** | 87.8% |
-| OpenAI Large | 4 | 4 bytes | **3072x** | 79.0% |
 
-> **Note:** 3-Stage compression requires the codebook for similarity search. Download via `/codebooks` or API.
+## Interactive Mode (REPL)
+
+```bash
+# Start interactive shell
+aqea
+
+# You'll see:
+# 🔷 AQEA Compress CLI v0.2.5
+# Type /help for commands, or enter vectors to compress
+```
+
+### REPL Commands
+
+| Command | Description |
+|---------|-------------|
+| `/login` | Authenticate with your API key |
+| `/models` | List available compression models |
+| `/model <name>` | Select a compression model |
+| `/compress <file>` | Compress vectors |
+| `/validate <file>` | Test compression quality |
+| `/status` | Show current session status |
+| `/help` | Show all available commands |
+| `/quit` | Exit the CLI |
 
 ## Get Your API Key
 
 1. Sign up at [https://aqea.ai](https://aqea.ai)
 2. Go to Dashboard → API Keys
 3. Create a new key
-4. Use `/login` in the CLI
+4. Use `aqea auth login` in the CLI
 
 **Free tier:** 10,000 compressions/month
 
 ## Configuration
 
 Config files are stored in:
-- **Linux/macOS:** `~/.config/aqea/`
+- **Linux/macOS:** `~/.config/aqea/` or `~/.aqea/`
 - **Windows:** `%APPDATA%\aqea\`
 
 ```
-~/.config/aqea/
+~/.aqea/
 ├── config.toml    # Settings
-└── credentials    # Encrypted API key
+└── credentials    # API key
+```
+
+## Building from Source
+
+Requires Rust 1.70+:
+
+```bash
+git clone https://github.com/nextX-AG/aqea-cli.git
+cd aqea-cli
+cargo build --release
+./target/release/aqea --version
 ```
 
 ## Uninstall
@@ -181,29 +225,26 @@ curl -fsSL https://aqea.ai/uninstall.sh | bash
 irm https://aqea.ai/uninstall.ps1 | iex
 ```
 
-### Homebrew
-
-```bash
-brew uninstall aqea
-```
-
-## Building from Source
-
-Requires Rust 1.70+:
-
-```bash
-git clone https://github.com/nextX-AG/aqea-cli.git
-cd aqea-cli
-cargo build --release
-./target/release/aqea
-```
-
 ## Links
 
 - [Website](https://aqea.ai)
+- [Live Demo](https://demo.aqea.ai)
 - [Documentation](https://aqea.ai/docs)
 - [API Reference](https://aqea.ai/docs/api-reference)
-- [Pricing](https://aqea.ai/pricing)
+
+## Changelog
+
+### v0.2.5 (2025-12-23)
+- ✨ Added `aqea train` command for custom weight training
+- ✨ Added Focus Steering with sampling strategies (random, kmeans, tsne-grid)
+- ✨ Added `aqea pq train` for custom PQ codebook training
+- ✨ Progressive training with early stopping
+- 🔧 Unified training system
+
+### v0.2.4 (2025-12-19)
+- API-only compression (no local weights required)
+- Multi-platform binaries
+- Improved error handling
 
 ## License
 
@@ -215,4 +256,4 @@ AQEA Compress is developed by [nextX AG](https://nextx.ch), a Swiss AI company.
 
 ---
 
-**Patent Pending** - Protected by 3 pending patents.
+**Patent Pending** - Protected by pending patents.
