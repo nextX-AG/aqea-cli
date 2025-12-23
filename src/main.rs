@@ -15,7 +15,8 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use aqea_core::{
-    Compressor, BinaryWeights, cosine_similarity, spearman_correlation
+    OctonionCompressor, Compressor, BinaryWeights, 
+    PreQuantifier, cosine_similarity, spearman_correlation
 };
 
 mod config;
@@ -26,7 +27,7 @@ mod validate;
 mod repl;
 
 use config::Config;
-use csv_support::{detect_format, parse_csv, vectors_to_csv_data, write_csv, FileFormat};
+use csv_support::{detect_format, parse_csv, vectors_to_csv_data, write_csv, CsvData, FileFormat};
 
 // ============================================================================
 // CLI STRUCTURE
@@ -124,9 +125,15 @@ enum Commands {
         #[arg(long)]
         month: Option<String>,
     },
+
+    /// PQ codebook operations (train, download, list)
+    Pq {
+        #[command(subcommand)]
+        action: PqCommands,
+    },
     
     /// [Internal] Validate compression quality locally
-    /// 
+    ///
     /// NOTE: This command requires local weights files and is intended
     /// for internal development and testing only.
     #[command(hide = true)]  // Hidden from --help for external users
@@ -134,19 +141,79 @@ enum Commands {
         /// Your embeddings/pairs file (JSON)
         #[arg(short, long)]
         data: PathBuf,
-        
+
         /// Weights file (.aqwt)
         #[arg(short, long)]
         weights: PathBuf,
-        
+
         /// Number of PQ subvectors for full pipeline test (optional)
         #[arg(long)]
         pq_subs: Option<usize>,
-        
+
         /// Output results as JSON
         #[arg(long)]
         json: bool,
-        
+
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Train AQEA weights on your embeddings
+    ///
+    /// Unified training system with intelligent sampling strategies
+    /// and automatic hyperparameter tuning.
+    Train {
+        /// Input embeddings file (AQED or JSON)
+        #[arg(short, long)]
+        input: PathBuf,
+
+        /// Output weights file (.aqwt)
+        #[arg(short, long)]
+        output: PathBuf,
+
+        /// Training split percentage (default: 20%)
+        #[arg(long, default_value = "20")]
+        train_split: f32,
+
+        /// Fixed sample count for single-run mode (e.g., "500" or "50%")
+        /// Disables progressive training - faster for testing
+        #[arg(long)]
+        samples: Option<String>,
+
+        /// Sampling strategy: random, kmeans, tsne-grid (default: kmeans)
+        #[arg(long, default_value = "kmeans")]
+        sampling: String,
+
+        /// Target compressed dimension (default: auto-detect)
+        #[arg(long)]
+        dim: Option<usize>,
+
+        /// Train PQ codebook with N subvectors (e.g., 17 for 241x compression)
+        #[arg(long)]
+        pq: Option<usize>,
+
+        /// PQ codebook output file
+        #[arg(long)]
+        pq_output: Option<PathBuf>,
+
+        /// Training report output (JSON)
+        #[arg(long)]
+        report: Option<PathBuf>,
+
+        /// Quick training mode (fewer iterations)
+        #[arg(long)]
+        quick: bool,
+
+        /// Instant mode for testing (~5 seconds, minimal quality)
+        #[arg(long)]
+        instant: bool,
+
+        /// EXPERIMENTAL: Sample from FULL embedding space (all data, not just labeled)
+        /// Uses cosine similarity of originals as ground truth
+        #[arg(long)]
+        full_space: bool,
+
         /// Verbose output
         #[arg(short, long)]
         verbose: bool,
@@ -180,6 +247,46 @@ enum ConfigCommands {
     List,
     /// Show config file path
     Path,
+}
+
+#[derive(Subcommand)]
+enum PqCommands {
+    /// Train a custom PQ codebook on your data
+    Train {
+        /// Input file with AQEA-compressed vectors (CSV/JSON)
+        input: PathBuf,
+
+        /// Number of subvectors (default: 8)
+        #[arg(short, long, default_value = "8")]
+        subvectors: usize,
+
+        /// Model name for the codebook
+        #[arg(short, long)]
+        model: Option<String>,
+
+        /// Custom name for your codebook
+        #[arg(short, long)]
+        name: Option<String>,
+    },
+
+    /// Check status of a PQ training job
+    Status {
+        /// Job ID from pq train command
+        job_id: String,
+    },
+
+    /// Download a trained PQ codebook
+    Download {
+        /// Job ID from pq train command
+        job_id: String,
+
+        /// Output file for codebook (JSON)
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+
+    /// List available PQ codebooks
+    List,
 }
 
 // ============================================================================
@@ -225,8 +332,25 @@ fn main() -> Result<()> {
         Commands::Usage { month } => {
             usage_cmd(month)?;
         },
+        Commands::Pq { action } => match action {
+            PqCommands::Train { input, subvectors, model, name } => {
+                pq_train_cmd(input, subvectors, model, name)?;
+            },
+            PqCommands::Status { job_id } => {
+                pq_status_cmd(&job_id)?;
+            },
+            PqCommands::Download { job_id, output } => {
+                pq_download_cmd(&job_id, output)?;
+            },
+            PqCommands::List => {
+                pq_list_cmd()?;
+            },
+        },
         Commands::Validate { data, weights, pq_subs, json, verbose } => {
             validate_cmd(&data, &weights, pq_subs, json, verbose)?;
+        },
+        Commands::Train { input, output, train_split, samples, sampling, dim, pq, pq_output, report, quick, instant, full_space, verbose } => {
+            train_cmd(&input, &output, train_split, samples.as_deref(), &sampling, dim, pq, pq_output, report, quick, instant, full_space, verbose)?;
         },
     }
 
@@ -1097,5 +1221,481 @@ fn usage_cmd(_month: Option<String>) -> Result<()> {
     
     // TODO: Implement API call to fetch usage
     
+    Ok(())
+}
+
+// ============================================================================
+// PQ COMMANDS
+// ============================================================================
+
+/// Train a custom PQ codebook
+fn pq_train_cmd(
+    input: PathBuf,
+    subvectors: usize,
+    model: Option<String>,
+    name: Option<String>,
+) -> Result<()> {
+    let config = Config::load()?;
+    let api_key = config.api_key.clone().ok_or_else(|| {
+        anyhow::anyhow!(
+            "{}\n\n  Run: {}\n  Get your API key at: {}",
+            style("Not authenticated").red().bold(),
+            style("aqea auth login").cyan(),
+            style("https://aqea.ai/dashboard/api-keys").cyan().underlined()
+        )
+    })?;
+    let api_url = config.api_url();
+
+    println!();
+    println!("{}", style("🎯 PQ Codebook Training").bold().cyan());
+    println!("{}", style("─".repeat(50)).dim());
+    println!();
+
+    // Read input vectors
+    println!("  {} Reading input file...", style("→").dim());
+    let content = std::fs::read_to_string(&input)
+        .map_err(|e| anyhow::anyhow!("Failed to read input file: {}", e))?;
+
+    // Parse vectors (assuming JSON array of arrays)
+    let vectors: Vec<Vec<f32>> = if input.extension().map_or(false, |e| e == "csv") {
+        // CSV: parse as rows of floats
+        let mut rdr = csv::Reader::from_reader(content.as_bytes());
+        rdr.records()
+            .filter_map(|r| r.ok())
+            .map(|record| {
+                record.iter()
+                    .filter_map(|s| s.parse::<f32>().ok())
+                    .collect()
+            })
+            .filter(|v: &Vec<f32>| !v.is_empty())
+            .collect()
+    } else {
+        // JSON
+        serde_json::from_str(&content)
+            .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?
+    };
+
+    if vectors.is_empty() {
+        anyhow::bail!("No vectors found in input file");
+    }
+
+    println!("  {} {} vectors loaded ({} dimensions)", 
+        style("✓").green(), vectors.len(), vectors[0].len());
+
+    // Build request
+    let request_body = serde_json::json!({
+        "vectors": vectors,
+        "options": {
+            "model": model,
+            "subvectors": subvectors,
+            "name": name,
+        }
+    });
+
+    println!("  {} Submitting training job...", style("→").dim());
+
+    // Submit job
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post(format!("{}/api/v1/pq/train", api_url))
+        .header("X-API-Key", &api_key)
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()?;
+
+    if !resp.status().is_success() {
+        let error: serde_json::Value = resp.json().unwrap_or_default();
+        anyhow::bail!("Training failed: {}", 
+            error.get("message").and_then(|m| m.as_str()).unwrap_or("Unknown error"));
+    }
+
+    let result: serde_json::Value = resp.json()?;
+    let job_id = result.get("job_id").and_then(|j| j.as_str()).unwrap_or("unknown");
+
+    println!();
+    println!("  {} Training job submitted!", style("✓").green().bold());
+    println!();
+    println!("  Job ID:  {}", style(job_id).cyan().bold());
+    println!();
+    println!("  {} Check status:", style("Next steps:").bold());
+    println!("     aqea pq status {}", job_id);
+    println!();
+    println!("  {} Download when ready:", style("Then:").bold());
+    println!("     aqea pq download {} -o my-codebook.json", job_id);
+    println!();
+
+    Ok(())
+}
+
+/// Check PQ training status
+fn pq_status_cmd(job_id: &str) -> Result<()> {
+    let config = Config::load()?;
+    let api_key = config.api_key.clone().ok_or_else(|| {
+        anyhow::anyhow!("Not authenticated. Run: aqea auth login")
+    })?;
+    let api_url = config.api_url();
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .get(format!("{}/api/v1/pq/train/{}", api_url, job_id))
+        .header("X-API-Key", &api_key)
+        .send()?;
+
+    if !resp.status().is_success() {
+        let error: serde_json::Value = resp.json().unwrap_or_default();
+        anyhow::bail!("{}", 
+            error.get("message").and_then(|m| m.as_str()).unwrap_or("Job not found"));
+    }
+
+    let result: serde_json::Value = resp.json()?;
+
+    println!();
+    println!("{}", style("📊 PQ Training Status").bold().cyan());
+    println!("{}", style("─".repeat(40)).dim());
+    println!();
+    println!("  Job ID:    {}", style(job_id).cyan());
+    println!("  Status:    {}", 
+        style(result.get("status").and_then(|s| s.as_str()).unwrap_or("unknown")).yellow());
+    println!("  Progress:  {}%", 
+        result.get("progress_percent").and_then(|p| p.as_f64()).unwrap_or(0.0) as i32);
+    println!("  Step:      {}", 
+        result.get("current_step").and_then(|s| s.as_str()).unwrap_or(""));
+    
+    if let Some(r) = result.get("result") {
+        println!();
+        println!("  {}", style("Result:").bold().green());
+        println!("    Compression: {}x", 
+            r.get("compression_ratio").and_then(|c| c.as_f64()).unwrap_or(0.0) as i32);
+        println!("    Quality:     {:.1}%", 
+            r.get("expected_quality").and_then(|q| q.as_f64()).unwrap_or(0.0) * 100.0);
+        println!("    Trained on:  {} vectors", 
+            r.get("vectors_trained").and_then(|v| v.as_i64()).unwrap_or(0));
+        println!();
+        println!("  {} Download with:", style("Ready!").green().bold());
+        println!("     aqea pq download {} -o codebook.json", job_id);
+    }
+    println!();
+
+    Ok(())
+}
+
+/// Download a trained PQ codebook
+fn pq_download_cmd(job_id: &str, output: PathBuf) -> Result<()> {
+    let config = Config::load()?;
+    let api_key = config.api_key.clone().ok_or_else(|| {
+        anyhow::anyhow!("Not authenticated. Run: aqea auth login")
+    })?;
+    let api_url = config.api_url();
+
+    println!();
+    println!("{}", style("📥 Downloading PQ Codebook").bold().cyan());
+    println!();
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .get(format!("{}/api/v1/pq/train/{}/codebook", api_url, job_id))
+        .header("X-API-Key", &api_key)
+        .send()?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let error: serde_json::Value = resp.json().unwrap_or_default();
+        if status == reqwest::StatusCode::ACCEPTED {
+            anyhow::bail!("Training not completed yet. Check status with: aqea pq status {}", job_id);
+        }
+        anyhow::bail!("{}", 
+            error.get("message").and_then(|m| m.as_str()).unwrap_or("Download failed"));
+    }
+
+    let codebook: serde_json::Value = resp.json()?;
+    let json = serde_json::to_string_pretty(&codebook)?;
+    
+    std::fs::write(&output, &json)?;
+
+    let codebook_id = codebook.get("codebook_id").and_then(|c| c.as_str()).unwrap_or("unknown");
+
+    println!("  {} Codebook saved to: {}", style("✓").green(), output.display());
+    println!("  {} Codebook ID: {}", style("ℹ").blue(), codebook_id);
+    println!();
+    println!("  {} Use with compress-pq:", style("Usage:").bold());
+    println!("     aqea compress-pq input.csv --codebook {} -o output.csv", output.display());
+    println!();
+
+    Ok(())
+}
+
+/// List available PQ codebooks
+fn pq_list_cmd() -> Result<()> {
+    let config = Config::load()?;
+    let api_url = config.api_url();
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .get(format!("{}/api/v1/pq/codebooks", api_url))
+        .send()?;
+
+    if !resp.status().is_success() {
+        anyhow::bail!("Failed to fetch codebooks");
+    }
+
+    let result: serde_json::Value = resp.json()?;
+    let codebooks = result.get("codebooks").and_then(|c| c.as_array());
+
+    println!();
+    println!("{}", style("📚 Available PQ Codebooks").bold().cyan());
+    println!("{}", style("─".repeat(70)).dim());
+    println!();
+    println!("  {:<30} {:>10} {:>12} {:>10}", 
+        style("ID").bold(), style("Ratio").bold(), style("Quality").bold(), style("Dims").bold());
+    println!("  {}", style("─".repeat(66)).dim());
+
+    if let Some(cbs) = codebooks {
+        for cb in cbs {
+            let id = cb.get("id").and_then(|i| i.as_str()).unwrap_or("");
+            let ratio = cb.get("compression_ratio").and_then(|r| r.as_f64()).unwrap_or(0.0);
+            let quality = cb.get("expected_quality").and_then(|q| q.as_f64()).unwrap_or(0.0);
+            let dim = cb.get("original_dim").and_then(|d| d.as_i64()).unwrap_or(0);
+
+            println!("  {:<30} {:>9.0}x {:>11.1}% {:>10}", 
+                id, ratio, quality * 100.0, dim);
+        }
+    }
+
+    println!();
+    println!("  {} Train your own: aqea pq train <input.csv>", style("Tip:").blue());
+    println!();
+
+    Ok(())
+}
+
+// ============================================================================
+// TRAIN COMMAND - Unified Training System
+// ============================================================================
+
+fn train_cmd(
+    input: &PathBuf,
+    output: &PathBuf,
+    train_split: f32,
+    samples: Option<&str>,
+    sampling: &str,
+    dim: Option<usize>,
+    pq_subs: Option<usize>,
+    pq_output: Option<PathBuf>,
+    report_path: Option<PathBuf>,
+    quick: bool,
+    instant: bool,
+    full_space: bool,
+    verbose: bool,
+) -> Result<()> {
+    use aqea_core::training::{
+        AutoTrainer, AutoTrainerConfig, SamplingStrategy, SampleProgression,
+        loader::{load_auto, EmbeddingData},
+    };
+    use aqea_core::pq::ProductQuantizer;
+    use std::time::Instant;
+
+    println!();
+    println!("{}", style("🚀 AQEA Training System").bold().cyan());
+    println!("{}", style("═".repeat(60)).dim());
+    println!();
+
+    // Full-space mode warning
+    if full_space {
+        println!("  {} FULL-SPACE MODE (experimental)", style("🌍").yellow().bold());
+        println!("  {} Sampling from ALL embeddings, not just labeled subset", style("→").dim());
+        println!("  {} Using original cosine similarity as ground truth", style("→").dim());
+        println!();
+    }
+
+    // Parse sampling strategy
+    let sampling_strategy: SamplingStrategy = sampling.parse()
+        .map_err(|e: String| anyhow::anyhow!(e))?;
+
+    println!("  {} Loading data from: {}", style("📂").dim(), input.display());
+
+    let start = Instant::now();
+    let data = load_auto(input)?;
+    let load_time = start.elapsed();
+
+    println!("  {} Loaded {} embeddings ({}D) in {:.1}s",
+        style("✓").green(),
+        data.len(),
+        data.dimension(),
+        load_time.as_secs_f32()
+    );
+
+    // Validate data
+    if data.len() < 100 {
+        anyhow::bail!("Need at least 100 embeddings for training, got {}", data.len());
+    }
+
+    // Split into training pairs
+    // In full_space mode: sample from ALL data using t-SNE grid
+    // In normal mode: use train_split to separate train/validation
+    let train_fraction = if full_space {
+        // In full-space mode, we sample uniformly from entire space
+        // Use larger fraction since we're covering more ground
+        (train_split / 100.0).max(0.3)
+    } else {
+        train_split / 100.0
+    };
+    
+    let (train_data, val_data) = data.split(train_fraction, 42);
+
+    println!("  {} Training: {} samples, Validation: {} samples",
+        style("📊").dim(),
+        train_data.len(),
+        val_data.len()
+    );
+    println!("  {} Sampling strategy: {}{}",
+        style("🎯").dim(),
+        sampling_strategy,
+        if full_space { " (full-space)" } else { "" }
+    );
+
+    // Determine compressed dimension
+    let original_dim = data.dimension();
+    let compressed_dim = dim.unwrap_or_else(|| {
+        // Default: approximately sqrt(original_dim) * 3, aligned to 8
+        let target = ((original_dim as f32).sqrt() * 3.0) as usize;
+        ((target + 7) / 8) * 8  // Round up to nearest 8
+    });
+
+    println!("  {} Compression: {}D → {}D ({:.1}x)",
+        style("📦").dim(),
+        original_dim,
+        compressed_dim,
+        original_dim as f32 / compressed_dim as f32
+    );
+    println!();
+
+    // Configure training
+    let mut config = if instant {
+        println!("  {} INSTANT mode: 10 generations × 15 population (~5s)",
+            style("⚡").yellow().bold());
+        AutoTrainerConfig::instant()
+    } else if quick {
+        AutoTrainerConfig::quick()
+    } else {
+        AutoTrainerConfig::default()
+    }
+    .with_compressed_dim(compressed_dim)
+    .with_sampling_strategy(sampling_strategy);
+
+    // Parse --samples argument for single-run mode
+    if let Some(samples_str) = samples {
+        if samples_str.ends_with('%') {
+            // Percentage mode: "50%" -> 50.0
+            let pct: f32 = samples_str[..samples_str.len()-1]
+                .parse()
+                .context("Invalid percentage format for --samples")?;
+            config = config.with_percent_samples(pct);
+            println!("  {} Single-run mode: {:.0}% of training data",
+                style("⚡").yellow().bold(), pct);
+        } else {
+            // Absolute number: "500" -> 500
+            let n: usize = samples_str.parse()
+                .context("Invalid number format for --samples (use e.g. '500' or '50%')")?;
+            config = config.with_single_samples(n);
+            println!("  {} Single-run mode: {} samples",
+                style("⚡").yellow().bold(), n);
+        }
+    }
+
+    let config = if verbose {
+        config
+    } else {
+        config.quiet()
+    };
+
+    // Train
+    println!("{}", style("Training AQEA weights...").bold());
+    println!();
+
+    let train_start = Instant::now();
+    let trainer = AutoTrainer::new(config);
+
+    // Use embeddings for both e1 and e2 (self-similarity training)
+    let result = trainer.train(
+        &train_data.embeddings,
+        &train_data.embeddings,
+    ).map_err(|e| anyhow::anyhow!(e))?;
+
+    let train_time = train_start.elapsed();
+
+    println!();
+    println!("{}", style("═".repeat(60)).dim());
+    println!();
+    println!("  {} Training complete in {:.1}s",
+        style("✓").green().bold(),
+        train_time.as_secs_f32()
+    );
+    println!("  {} Final validation score: {:.1}%",
+        style("📈").dim(),
+        result.final_val_score * 100.0
+    );
+    println!("  {} Optimal sample size: {}",
+        style("🎯").dim(),
+        result.optimal_sample_size
+    );
+
+    // Save weights
+    let compressor = result.to_compressor();
+    let weights_data = compressor.get_flat_weights();
+
+    // Create simple weights file (JSON for now)
+    let weights_json = serde_json::json!({
+        "version": 1,
+        "original_dim": original_dim,
+        "compressed_dim": compressed_dim,
+        "weights": weights_data,
+        "train_score": result.final_train_score,
+        "val_score": result.final_val_score,
+        "optimal_samples": result.optimal_sample_size,
+    });
+
+    std::fs::write(output, serde_json::to_string_pretty(&weights_json)?)?;
+    println!("  {} Weights saved to: {}", style("💾").dim(), output.display());
+
+    // Train PQ if requested
+    if let Some(n_subvectors) = pq_subs {
+        println!();
+        println!("{}", style("Training PQ codebook...").bold());
+
+        // Compress training data with AQEA first
+        let compressed: Vec<Vec<f32>> = train_data.embeddings.iter()
+            .map(|e| compressor.compress(e))
+            .collect();
+
+        let mut pq = ProductQuantizer::new(compressed_dim, n_subvectors, 8);
+        pq.train(&compressed, 100);
+
+        let pq_path = pq_output.unwrap_or_else(|| {
+            let mut p = output.clone();
+            p.set_extension("pq.json");
+            p
+        });
+
+        pq.save(&pq_path)?;
+
+        println!("  {} PQ codebook saved to: {}", style("💾").dim(), pq_path.display());
+        println!("  {} Subvectors: {}, Total compression: {:.0}x",
+            style("📦").dim(),
+            n_subvectors,
+            (original_dim as f32 * 4.0) / (n_subvectors as f32)
+        );
+    }
+
+    // Save report if requested
+    if let Some(report_file) = report_path {
+        let report_json = result.report.to_json()?;
+        std::fs::write(&report_file, report_json)?;
+        println!("  {} Report saved to: {}", style("📋").dim(), report_file.display());
+    }
+
+    println!();
+    println!("{}", style("🎉 Training complete!").bold().green());
+    println!();
+
     Ok(())
 }

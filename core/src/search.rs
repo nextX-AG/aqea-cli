@@ -24,7 +24,7 @@
 
 use crate::compression::{OctonionCompressor, Compressor};
 use crate::decompression::{
-    ProjectionDecompressor, PQDecompressor,
+    ProjectionDecompressor, LinearDecompressor, PQDecompressor,
     Decompressor,
 };
 use crate::pq::ProductQuantizer;

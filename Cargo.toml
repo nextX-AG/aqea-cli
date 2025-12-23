@@ -1,9 +1,21 @@
 [workspace]
+resolver = "2"
 members = ["core"]
+
+[workspace.package]
+version = "0.2.5"
+edition = "2021"
+authors = ["AQEA <hello@aqea.ai>"]
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
 
 [package]
 name = "aqea"
-version = "0.2.0"
+version = "0.2.5"
 edition = "2021"
 authors = ["AQEA <hello@aqea.ai>"]
 license = "MIT"

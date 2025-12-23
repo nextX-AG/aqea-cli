@@ -30,8 +30,8 @@
 //! ```
 
 use crate::compression::{Compressor, OctonionCompressor};
-use crate::pq::ProductQuantizer;
-use crate::quantization::EightBitQuantizer;
+use crate::pq::{ProductQuantizer, PQMode};
+use crate::quantization::{EightBitQuantizer, QuantizedEmbedding};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

@@ -56,6 +56,9 @@ pub mod constants;
 pub mod weights_binary;
 pub mod cmaes;
 
+// Auto-Training module
+pub mod training;
+
 // 3-Stage Pipeline modules
 pub mod quantization;
 pub mod pq;
@@ -79,6 +82,16 @@ pub use pipeline::{CompressionPipeline, PipelineMode, CompressedOutput, Compress
 
 // Search re-exports (Precision Boost)
 pub use search::{SearchMode, SearchResult, SearchResponse, SearchConfig, PrecisionBoostSearcher, compute_recall_with_rerank};
+
+// Training re-exports (Auto-Training)
+pub use training::{
+    AutoTrainer, AutoTrainerConfig, AutoTrainResult,
+    DataSplitter, SplitData,
+    EarlyStopping, EarlyStopReason, OverfitDetector, OverfitStatus,
+    ProgressiveTrainer, ProgressStep,
+    TrainingReport, ProgressionEntry, StopReason, Recommendation,
+    SampleProgression,
+};
 
 
 
