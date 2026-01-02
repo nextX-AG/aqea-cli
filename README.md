@@ -8,25 +8,26 @@
 
 AQEA Compress is a CLI tool for extreme embedding compression. Reduce your vector storage costs by up to 99% while maintaining semantic search quality.
 
-## 🆕 What's New in v0.2.5
+## 🆕 What's New in v0.3.0
 
+- **Go-Live** - Full API integration with compress.aqea.ai
 - **`aqea train`** - Train custom AQEA weights with Focus Steering
-- **Sampling Strategies** - Choose between `random`, `kmeans`, or `tsne-grid`
-- **`aqea pq train`** - Train custom PQ codebooks for extreme compression
-- **Focus Steering** - Tune retrieval behavior without retraining base transformers
+- **Sampling Profiles** - Choose between `random-v1`, `coverage-v1`, or `focus-v1`
+- **`aqea pq train`** - Train custom PQ codebooks for extreme compression (up to 585x)
+- **`aqea pq list`** - List all available PQ codebooks
 
 ## Quick Install
 
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://aqea.ai/install.sh | bash
+curl -fsSL https://compress.aqea.ai/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://aqea.ai/install.ps1 | iex
+irm https://compress.aqea.ai/install.ps1 | iex
 ```
 
 ### Manual Download
@@ -35,11 +36,11 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [aqea-aarch64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-apple-darwin.tar.gz) |
-| macOS (Intel) | [aqea-x86_64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-apple-darwin.tar.gz) |
-| Linux (x86_64) | [aqea-x86_64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-unknown-linux-gnu.tar.gz) |
-| Linux (ARM64) | [aqea-aarch64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-unknown-linux-gnu.tar.gz) |
-| Windows | [aqea-x86_64-pc-windows-msvc.zip](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-pc-windows-msvc.zip) |
+| macOS (Apple Silicon) | [aqea-aarch64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-aarch64-apple-darwin.tar.gz) |
+| macOS (Intel) | [aqea-x86_64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-apple-darwin.tar.gz) |
+| Linux (x86_64) | [aqea-x86_64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-unknown-linux-gnu.tar.gz) |
+| Linux (ARM64) | [aqea-aarch64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-aarch64-unknown-linux-gnu.tar.gz) |
+| Windows | [aqea-x86_64-pc-windows-msvc.zip](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-pc-windows-msvc.zip) |
 
 ## Supported Platforms
 
@@ -90,35 +91,35 @@ aqea compress embeddings.json -o compressed.json --model text-mpnet
 
 Train custom "lenses" that change retrieval behavior without retraining your base transformer!
 
-### Sampling Strategies
+### Sampling Profiles
 
-| Strategy | Focus | Best For |
-|----------|-------|----------|
-| `random` | Balanced | General purpose |
-| `kmeans` | Cluster centers | Precision (tight clusters) |
-| `tsne-grid` | Uniform coverage | Discovery (diverse results) |
+| Profile | Focus | Best For |
+|---------|-------|----------|
+| `random-v1` | Balanced | General purpose |
+| `focus-v1` | Cluster centers | Precision (tight clusters) |
+| `coverage-v1` | Uniform coverage | Discovery (diverse results) |
 
 ### Training Examples
 
 ```bash
-# Basic training with K-Means sampling (default)
+# Basic training with focus sampling (default)
 aqea train \
   --input embeddings.json \
   --output my_weights.aqwt \
-  --sampling kmeans
+  --sampling focus-v1
 
-# Discovery-focused training (t-SNE grid)
+# Discovery-focused training (uniform coverage)
 aqea train \
   --input embeddings.json \
   --output discovery_weights.aqwt \
-  --sampling tsne-grid \
+  --sampling coverage-v1 \
   --train-split 30
 
 # Train with PQ for extreme compression (585x)
 aqea train \
   --input embeddings.json \
   --output extreme.aqwt \
-  --pq 17 \
+  --pq 7 \
   --pq-output codebook.json
 ```
 
@@ -129,7 +130,7 @@ aqea train \
 | `--input` | required | Input embeddings (JSON or AQED format) |
 | `--output` | required | Output weights file (.aqwt) |
 | `--train-split` | 20% | Percentage of data for training |
-| `--sampling` | kmeans | Sampling strategy |
+| `--sampling` | focus-v1 | Sampling profile (random-v1, focus-v1, coverage-v1) |
 | `--samples` | auto | Fixed sample count (e.g., "500" or "50%") |
 | `--pq` | - | Train PQ codebook with N subvectors |
 | `--quick` | false | Faster training, slightly lower quality |
@@ -162,7 +163,7 @@ aqea train \
 aqea
 
 # You'll see:
-# 🔷 AQEA Compress CLI v0.2.5
+# 🔷 AQEA Compress CLI v0.3.0
 # Type /help for commands, or enter vectors to compress
 ```
 
@@ -216,13 +217,13 @@ cargo build --release
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://aqea.ai/uninstall.sh | bash
+curl -fsSL https://compress.aqea.ai/uninstall.sh | bash
 ```
 
 ### Windows
 
 ```powershell
-irm https://aqea.ai/uninstall.ps1 | iex
+irm https://compress.aqea.ai/uninstall.ps1 | iex
 ```
 
 ## Links
@@ -234,9 +235,15 @@ irm https://aqea.ai/uninstall.ps1 | iex
 
 ## Changelog
 
+### v0.3.0 (2026-01-02)
+- 🚀 **Go-Live Release**
+- 🔗 Updated all URLs to compress.aqea.ai
+- 📦 Stable sampling profiles: `random-v1`, `focus-v1`, `coverage-v1`
+- ✅ Full API integration tested
+
 ### v0.2.5 (2025-12-23)
 - ✨ Added `aqea train` command for custom weight training
-- ✨ Added Focus Steering with sampling strategies (random, kmeans, tsne-grid)
+- ✨ Added Focus Steering with sampling strategies
 - ✨ Added `aqea pq train` for custom PQ codebook training
 - ✨ Progressive training with early stopping
 - 🔧 Unified training system
@@ -256,4 +263,4 @@ AQEA Compress is developed by [nextX AG](https://nextx.ch), a Swiss AI company.
 
 ---
 
-**Patent Pending** - Protected by pending patents.
+**Patent Pending** - Protected by 4 pending patents.
