@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-02
+
+### Changed
+- **Updated all URLs** to new domain `compress.aqea.ai`
+- Dashboard links now point to Platform Workspace
+- Homepage updated to `compress.aqea.ai`
+
+### Fixed
+- Authentication error messages now show correct URL
+- Usage and pricing links corrected
+
+## [0.2.5] - 2025-12-30
+
+### Added
+- `/train` command for local CMA-ES training (experimental)
+- Focus Steering support in training pipeline
+- Improved benchmark engine
+
+### Changed
+- Workspace structure for better core/CLI separation
+
 ## [0.2.0] - 2025-12-19
 
 ### Changed (Breaking)
@@ -69,7 +90,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 0.1.0 | 2025-01 | Initial release |
+| 0.3.0 | 2026-01-02 | Go-Live URL updates |
+| 0.2.5 | 2025-12-30 | Train command & Focus Steering |
+| 0.2.0 | 2025-12-19 | API-only compression |
+| 0.1.0 | 2025-12-16 | Initial release |
 
-[Unreleased]: https://github.com/nextX-AG/aqea-cli/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nextX-AG/aqea-cli/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/nextX-AG/aqea-cli/releases/tag/v0.3.0
+[0.2.5]: https://github.com/nextX-AG/aqea-cli/releases/tag/v0.2.5
+[0.2.0]: https://github.com/nextX-AG/aqea-cli/releases/tag/v0.2.0
 [0.1.0]: https://github.com/nextX-AG/aqea-cli/releases/tag/v0.1.0

@@ -3,7 +3,7 @@ resolver = "2"
 members = ["core"]
 
 [workspace.package]
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 authors = ["AQEA <hello@aqea.ai>"]
 license = "MIT"
@@ -15,13 +15,13 @@ thiserror = "1.0"
 
 [package]
 name = "aqea"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 authors = ["AQEA <hello@aqea.ai>"]
 license = "MIT"
 description = "AQEA CLI - Compress embeddings up to 3000x"
 repository = "https://github.com/nextX-AG/aqea-cli"
-homepage = "https://aqea.ai"
+homepage = "https://compress.aqea.ai"
 readme = "README.md"
 keywords = ["embeddings", "compression", "vector", "ai", "machine-learning"]
 categories = ["command-line-utilities", "compression"]

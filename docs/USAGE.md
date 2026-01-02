@@ -151,7 +151,7 @@ aqea validate input.json
 ### "API key invalid"
 
 1. Check key format: should start with `aqea_`
-2. Generate new key at https://aqea.ai/dashboard
+2. Generate new key at https://compress.aqea.ai/platform/workspace
 
 ### "Dimension mismatch"
 
@@ -165,4 +165,4 @@ Make sure your embedding dimensions match the model:
 ### "Rate limit exceeded"
 
 - Free tier: 10 req/min
-- Upgrade at https://aqea.ai/pricing
+- Upgrade at https://compress.aqea.ai/pricing

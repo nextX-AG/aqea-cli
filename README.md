@@ -181,7 +181,7 @@ aqea
 
 ## Get Your API Key
 
-1. Sign up at [https://aqea.ai](https://aqea.ai)
+1. Sign up at [https://compress.aqea.ai](https://compress.aqea.ai)
 2. Go to Dashboard → API Keys
 3. Create a new key
 4. Use `aqea auth login` in the CLI
@@ -227,10 +227,10 @@ irm https://aqea.ai/uninstall.ps1 | iex
 
 ## Links
 
-- [Website](https://aqea.ai)
-- [Live Demo](https://demo.aqea.ai)
-- [Documentation](https://aqea.ai/docs)
-- [API Reference](https://aqea.ai/docs/api-reference)
+- [Website](https://compress.aqea.ai)
+- [Live Demo](https://compress.aqea.ai/demo)
+- [Documentation](https://compress.aqea.ai/docs)
+- [API Reference](https://compress.aqea.ai/docs/api-reference)
 
 ## Changelog
 

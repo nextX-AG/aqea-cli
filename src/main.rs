@@ -410,7 +410,7 @@ fn auth_login() -> Result<()> {
 
     println!("To authenticate, you need an API key from AQEA.");
     println!();
-    println!("1. Go to: {}", style("https://aqea.ai/dashboard/api-keys").cyan().underlined());
+    println!("1. Go to: {}", style("https://compress.aqea.ai/platform/workspace").cyan().underlined());
     println!("2. Create a new API key");
     println!("3. Paste it below");
     println!();
@@ -528,7 +528,7 @@ fn compress_cmd(
             "{}\n\n  Run: {}\n  Get your API key at: {}",
             style("Not authenticated").red().bold(),
             style("aqea auth login").cyan(),
-            style("https://aqea.ai/dashboard/api-keys").cyan().underlined()
+            style("https://compress.aqea.ai/platform/workspace").cyan().underlined()
         )
     })?;
 
@@ -675,7 +675,7 @@ fn compress_cmd(
                     "{}: {}\n\n  Upgrade at: {}",
                     style("Quota exceeded").red().bold(),
                     error_msg,
-                    style("https://aqea.ai/pricing").cyan().underlined()
+                    style("https://compress.aqea.ai/pricing").cyan().underlined()
                 ),
                 429 => anyhow::bail!(
                     "{}: {}\n\n  Please wait and try again.",
@@ -829,7 +829,7 @@ fn test_cmd(
             "{}\n\n  Run: {}\n  Get your API key at: {}",
             style("Not authenticated").red().bold(),
             style("aqea auth login").cyan(),
-            style("https://aqea.ai/dashboard/api-keys").cyan().underlined()
+            style("https://compress.aqea.ai/platform/workspace").cyan().underlined()
         )
     })?;
 
@@ -1216,7 +1216,7 @@ fn usage_cmd(_month: Option<String>) -> Result<()> {
     println!("{}", style("─".repeat(40)).dim());
     println!();
     println!("  {}  Usage tracking requires API connection.", style("ℹ").blue());
-    println!("     Visit: {}", style("https://aqea.ai/dashboard/usage").cyan().underlined());
+    println!("     Visit: {}", style("https://compress.aqea.ai/platform/workspace").cyan().underlined());
     println!();
     
     // TODO: Implement API call to fetch usage
@@ -1241,7 +1241,7 @@ fn pq_train_cmd(
             "{}\n\n  Run: {}\n  Get your API key at: {}",
             style("Not authenticated").red().bold(),
             style("aqea auth login").cyan(),
-            style("https://aqea.ai/dashboard/api-keys").cyan().underlined()
+            style("https://compress.aqea.ai/platform/workspace").cyan().underlined()
         )
     })?;
     let api_url = config.api_url();
