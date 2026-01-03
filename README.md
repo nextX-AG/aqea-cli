@@ -228,10 +228,19 @@ irm https://compress.aqea.ai/uninstall.ps1 | iex
 
 ## Links
 
-- [Website](https://compress.aqea.ai)
-- [Live Demo](https://compress.aqea.ai/demo)
-- [Documentation](https://compress.aqea.ai/docs)
-- [API Reference](https://compress.aqea.ai/docs/api-reference)
+## Links
+
+- 🌐 [Website](https://compress.aqea.ai)
+- 🎮 [Live Demo](https://compress.aqea.ai/demo)
+- 🚀 [Platform](https://platform.aqea.ai)
+- 📖 [Documentation](https://compress.aqea.ai/docs)
+- 📚 [API Reference](https://compress.aqea.ai/docs/api-reference)
+
+## Related Repositories
+
+| Repository | Description |
+|------------|-------------|
+| [aqea-technical-report](https://github.com/nextX-AG/aqea-technical-report) | Scientific methodology, benchmarks & reproducibility |
 
 ## Changelog
 
