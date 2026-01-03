@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub release](https://img.shields.io/github/v/release/nextX-AG/aqea-cli)](https://github.com/nextX-AG/aqea-cli/releases)
 [![Platform Support](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-blue)](https://github.com/nextX-AG/aqea-cli/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18138436.svg)](https://doi.org/10.5281/zenodo.18138436)
 
 AQEA Compress is a CLI tool for extreme embedding compression. Reduce your vector storage costs by up to 99% while maintaining semantic search quality.
 
@@ -244,7 +245,8 @@ irm https://aqea.ai/uninstall.ps1 | iex
 
 | Repository | Description |
 |------------|-------------|
-| [aqea-technical-report](https://github.com/nextX-AG/aqea-technical-report) | Scientific methodology, benchmarks & reproducibility |
+| [Technical Report (Zenodo)](https://doi.org/10.5281/zenodo.18138436) | Citable scientific paper (DOI: 10.5281/zenodo.18138436) |
+| [aqea-technical-report](https://github.com/nextX-AG/aqea-technical-report) | Source files, benchmarks & reproducibility scripts |
 
 ## Changelog
 
