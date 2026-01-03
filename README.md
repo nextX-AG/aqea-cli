@@ -139,8 +139,8 @@ aqea train \
 
 ### Standard Compression - Works with ANY vector DB
 
-| Model | Input → Output | Compression | Quality |
-|-------|----------------|-------------|---------|
+| Model | Input → Output | Compression | Retention* |
+|-------|----------------|-------------|------------|
 | MiniLM | 384D → 13D | 29x | 97.1% |
 | MPNet | 768D → 26D | 29x | 98.3% |
 | E5-Large | 1024D → 35D | 29x | 98.2% |
@@ -150,10 +150,12 @@ aqea train \
 | Protein (ESM) | 320D → 11D | 29x | 95.0% |
 | Video (I3D) | 2048D → 128D | 16x | 99.0% |
 
+_*Retention = Spearman correlation vs. original embedding. Note: Original embeddings achieve ~80-86% on human similarity benchmarks (e.g., STS). AQEA preserves this task performance with only ~5% additional loss._
+
 ### Extreme Compression - Maximum Compression 🔥
 
-| Model | Output | Compression | Quality |
-|-------|--------|-------------|---------|
+| Model | Output | Compression | Retention* |
+|-------|--------|-------------|------------|
 | MiniLM | 7 bytes | **219x** | 84.8% |
 | MPNet | 7 bytes | **439x** | 87.4% |
 | E5-Large | 7 bytes | **585x** | 85.1% |
