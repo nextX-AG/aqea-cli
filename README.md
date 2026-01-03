@@ -8,26 +8,25 @@
 
 AQEA Compress is a CLI tool for extreme embedding compression. Reduce your vector storage costs by up to 99% while maintaining semantic search quality.
 
-## 🆕 What's New in v0.3.0
+## 🆕 What's New in v0.2.5
 
-- **Go-Live** - Full API integration with compress.aqea.ai
 - **`aqea train`** - Train custom AQEA weights with Focus Steering
-- **Sampling Profiles** - Choose between `random-v1`, `coverage-v1`, or `focus-v1`
-- **`aqea pq train`** - Train custom PQ codebooks for extreme compression (up to 585x)
-- **`aqea pq list`** - List all available PQ codebooks
+- **Sampling Strategies** - Choose between `random`, `kmeans`, or `tsne-grid`
+- **`aqea pq train`** - Train custom PQ codebooks for extreme compression
+- **Focus Steering** - Tune retrieval behavior without retraining base transformers
 
 ## Quick Install
 
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://compress.aqea.ai/install.sh | bash
+curl -fsSL https://aqea.ai/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://compress.aqea.ai/install.ps1 | iex
+irm https://aqea.ai/install.ps1 | iex
 ```
 
 ### Manual Download
@@ -36,11 +35,11 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [aqea-aarch64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-aarch64-apple-darwin.tar.gz) |
-| macOS (Intel) | [aqea-x86_64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-apple-darwin.tar.gz) |
-| Linux (x86_64) | [aqea-x86_64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-unknown-linux-gnu.tar.gz) |
-| Linux (ARM64) | [aqea-aarch64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-aarch64-unknown-linux-gnu.tar.gz) |
-| Windows | [aqea-x86_64-pc-windows-msvc.zip](https://github.com/nextX-AG/aqea-cli/releases/download/v0.3.0/aqea-x86_64-pc-windows-msvc.zip) |
+| macOS (Apple Silicon) | [aqea-aarch64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-apple-darwin.tar.gz) |
+| macOS (Intel) | [aqea-x86_64-apple-darwin.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-apple-darwin.tar.gz) |
+| Linux (x86_64) | [aqea-x86_64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-unknown-linux-gnu.tar.gz) |
+| Linux (ARM64) | [aqea-aarch64-unknown-linux-gnu.tar.gz](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-aarch64-unknown-linux-gnu.tar.gz) |
+| Windows | [aqea-x86_64-pc-windows-msvc.zip](https://github.com/nextX-AG/aqea-cli/releases/download/v0.2.5/aqea-x86_64-pc-windows-msvc.zip) |
 
 ## Supported Platforms
 
@@ -91,35 +90,35 @@ aqea compress embeddings.json -o compressed.json --model text-mpnet
 
 Train custom "lenses" that change retrieval behavior without retraining your base transformer!
 
-### Sampling Profiles
+### Sampling Strategies
 
-| Profile | Focus | Best For |
-|---------|-------|----------|
-| `random-v1` | Balanced | General purpose |
-| `focus-v1` | Cluster centers | Precision (tight clusters) |
-| `coverage-v1` | Uniform coverage | Discovery (diverse results) |
+| Strategy | Focus | Best For |
+|----------|-------|----------|
+| `random` | Balanced | General purpose |
+| `kmeans` | Cluster centers | Precision (tight clusters) |
+| `tsne-grid` | Uniform coverage | Discovery (diverse results) |
 
 ### Training Examples
 
 ```bash
-# Basic training with focus sampling (default)
+# Basic training with K-Means sampling (default)
 aqea train \
   --input embeddings.json \
   --output my_weights.aqwt \
-  --sampling focus-v1
+  --sampling kmeans
 
-# Discovery-focused training (uniform coverage)
+# Discovery-focused training (t-SNE grid)
 aqea train \
   --input embeddings.json \
   --output discovery_weights.aqwt \
-  --sampling coverage-v1 \
+  --sampling tsne-grid \
   --train-split 30
 
 # Train with PQ for extreme compression (585x)
 aqea train \
   --input embeddings.json \
   --output extreme.aqwt \
-  --pq 7 \
+  --pq 17 \
   --pq-output codebook.json
 ```
 
@@ -130,7 +129,7 @@ aqea train \
 | `--input` | required | Input embeddings (JSON or AQED format) |
 | `--output` | required | Output weights file (.aqwt) |
 | `--train-split` | 20% | Percentage of data for training |
-| `--sampling` | focus-v1 | Sampling profile (random-v1, focus-v1, coverage-v1) |
+| `--sampling` | kmeans | Sampling strategy |
 | `--samples` | auto | Fixed sample count (e.g., "500" or "50%") |
 | `--pq` | - | Train PQ codebook with N subvectors |
 | `--quick` | false | Faster training, slightly lower quality |
@@ -147,14 +146,21 @@ aqea train \
 | OpenAI Small | 1536D → 52D | 29x | 95.0% |
 | OpenAI Large | 3072D → 105D | 29x | 95.0% |
 | Audio (wav2vec2) | 768D → 26D | 29x | 97.1% |
+| Protein (ESM) | 320D → 11D | 29x | 95.0% |
+| Video (I3D) | 2048D → 128D | 16x | 99.0% |
 
 ### Extreme Compression - Maximum Compression 🔥
 
-| Model | Subvectors | Output | Compression | Quality |
-|-------|------------|--------|-------------|---------|
-| E5-Large | 17 | 17 bytes | **585x** | 93.5% |
-| E5-Large | 31 | 31 bytes | **241x** | 97.2% |
-| OpenAI Large | 10 | 10 bytes | **1229x** | 87.8% |
+| Model | Output | Compression | Quality |
+|-------|--------|-------------|---------|
+| MiniLM | 7 bytes | **219x** | 84.8% |
+| MPNet | 7 bytes | **439x** | 87.4% |
+| E5-Large | 7 bytes | **585x** | 85.1% |
+| OpenAI Small | 10 bytes | **614x** | 87.0% |
+| OpenAI Large | 10 bytes | **1229x** | 87.8% |
+| Audio (wav2vec2) | 10 bytes | **307x** | 95.0% |
+| Protein (ESM) | 6 bytes | **213x** | 93.4% |
+| Video (I3D) | 32 bytes | **256x** | 96.8% |
 
 ## Interactive Mode (REPL)
 
@@ -182,7 +188,7 @@ aqea
 
 ## Get Your API Key
 
-1. Sign up at [https://compress.aqea.ai](https://compress.aqea.ai)
+1. Sign up at [https://aqea.ai](https://aqea.ai)
 2. Go to Dashboard → API Keys
 3. Create a new key
 4. Use `aqea auth login` in the CLI
@@ -217,15 +223,14 @@ cargo build --release
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://compress.aqea.ai/uninstall.sh | bash
+curl -fsSL https://aqea.ai/uninstall.sh | bash
 ```
 
 ### Windows
 
 ```powershell
-irm https://compress.aqea.ai/uninstall.ps1 | iex
+irm https://aqea.ai/uninstall.ps1 | iex
 ```
-
 
 ## Links
 
@@ -243,15 +248,9 @@ irm https://compress.aqea.ai/uninstall.ps1 | iex
 
 ## Changelog
 
-### v0.3.0 (2026-01-02)
-- 🚀 **Go-Live Release**
-- 🔗 Updated all URLs to compress.aqea.ai
-- 📦 Stable sampling profiles: `random-v1`, `focus-v1`, `coverage-v1`
-- ✅ Full API integration tested
-
 ### v0.2.5 (2025-12-23)
 - ✨ Added `aqea train` command for custom weight training
-- ✨ Added Focus Steering with sampling strategies
+- ✨ Added Focus Steering with sampling strategies (random, kmeans, tsne-grid)
 - ✨ Added `aqea pq train` for custom PQ codebook training
 - ✨ Progressive training with early stopping
 - 🔧 Unified training system
@@ -271,4 +270,4 @@ AQEA Compress is developed by [nextX AG](https://nextx.ch), a Swiss AI company.
 
 ---
 
-**Patent Pending** - Protected by 4 pending patents.
+**Patent Pending** - Protected by pending patents.
